@@ -1,12 +1,11 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
 
-// 检查是否配置了 Firebase
 const isFirebaseConfigured = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
                              process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "your_firebase_api_key";
 
-let db = null;
-let app = null;
+let db: Firestore | null = null;
+let app: FirebaseApp | null = null;
 
 if (isFirebaseConfigured) {
   const firebaseConfig = {
