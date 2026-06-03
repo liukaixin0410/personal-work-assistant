@@ -22,7 +22,7 @@ const mockTodos: Todo[] = [
     title: "完成项目首页开发",
     description: "开发个人工作助手的首页功能",
     priority: "high",
-    status: "in_progress",
+    status: "doing",
     dueTime: "2026-06-04T18:00:00",
     isToday: true,
     createdAt: "2026-06-03T08:00:00Z",
