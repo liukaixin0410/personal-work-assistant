@@ -14,7 +14,6 @@ import {
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import type { Todo } from "@/types";
-import { getTodayDateString } from "@/lib/utils";
 
 // 模拟数据，当没有配置 Firebase 时使用
 const mockTodos: Todo[] = [

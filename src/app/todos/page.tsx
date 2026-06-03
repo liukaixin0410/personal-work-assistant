@@ -5,8 +5,6 @@ import { Plus, Edit, Trash2, CheckCircle2, Circle, ListTodo } from "lucide-react
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   EmptyState,
   LoadingState,
   Button,
