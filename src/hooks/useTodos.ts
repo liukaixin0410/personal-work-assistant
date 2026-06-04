@@ -49,6 +49,12 @@ const mockTodos: Todo[] = [
   },
 ];
 
+const priorityOrder: Record<TodoPriority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +76,6 @@ export function useTodos() {
     const q = query(
       collection(db, "todos"),
       where("isToday", "==", true),
-      orderBy("priority", "asc"),
       orderBy("createdAt", "desc")
     );
 
@@ -81,12 +86,20 @@ export function useTodos() {
           id: doc.id,
           ...doc.data(),
         })) as Todo[];
-        setTodos(todoList);
+
+        // 按优先级和创建时间在客户端排序（避免需要 Firebase 复合索引）
+        const sortedTodos = todoList.sort((a, b) => {
+          const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+          if (priorityDiff !== 0) return priorityDiff;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+        setTodos(sortedTodos);
         setLoading(false);
       },
       (err) => {
         console.error("Error fetching todos:", err);
-        setError("加载任务失败");
+        setError("加载任务失败：" + (err as Error).message);
         setLoading(false);
       }
     );
@@ -107,7 +120,6 @@ export function useTodoActions() {
     const docRef = await addDoc(collection(db, "todos"), {
       ...todo,
       isToday: true,
-      status: "todo",
       createdAt: now,
       updatedAt: now,
     });
