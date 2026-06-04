@@ -22,9 +22,9 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
         className="fixed inset-0 bg-black/50"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-lg mx-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <div className="relative z-10 w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+        <Card className="flex flex-col max-h-[90vh]">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 flex-shrink-0">
             <CardTitle className="text-lg">{title}</CardTitle>
             <Button
               variant="ghost"
@@ -35,8 +35,8 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>{children}</CardContent>
-          {footer && <CardFooter>{footer}</CardFooter>}
+          <CardContent className="overflow-y-auto flex-1">{children}</CardContent>
+          {footer && <CardFooter className="flex-shrink-0">{footer}</CardFooter>}
         </Card>
       </div>
     </div>
