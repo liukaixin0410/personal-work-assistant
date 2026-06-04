@@ -69,33 +69,36 @@ export default function TodosPage() {
   const handleQuickAdd = async () => {
     console.log("[Todo] 点击添加按钮:", quickAddTitle, quickAddPriority);
 
-    if (!quickAddTitle.trim()) {
-      setActionError("请先输入任务标题");
-      return;
-    }
+    // 如果快速添加输入框有内容，直接添加
+    if (quickAddTitle.trim()) {
+      setIsSaving(true);
+      setActionError(null);
+      setDebugInfo("正在请求 Firebase 保存数据...");
 
-    setIsSaving(true);
-    setActionError(null);
-    setDebugInfo("正在请求 Firebase 保存数据...");
-
-    try {
-      const result = await addTodo({
-        title: quickAddTitle,
-        priority: quickAddPriority,
-        isToday: true,
-        status: "todo",
-      });
-      console.log("[Todo] 保存成功，返回ID:", result);
-      setQuickAddTitle("");
-      setDebugInfo("保存成功！");
-      setTimeout(() => setDebugInfo(null), 2000);
-    } catch (err) {
-      console.error("[Todo] 保存失败:", err);
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      setActionError("添加任务失败：" + errorMsg + "（请确保已在 Firebase 控制台创建 Firestore 数据库）");
-      setDebugInfo(null);
-    } finally {
-      setIsSaving(false);
+      try {
+        const result = await addTodo({
+          title: quickAddTitle,
+          priority: quickAddPriority,
+          isToday: true,
+          status: "todo",
+        });
+        console.log("[Todo] 保存成功，返回ID:", result);
+        setQuickAddTitle("");
+        setDebugInfo("保存成功！");
+        setTimeout(() => setDebugInfo(null), 2000);
+      } catch (err) {
+        console.error("[Todo] 保存失败:", err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        setActionError("添加任务失败：" + errorMsg + "（请确保已在 Firebase 控制台创建 Firestore 数据库）");
+        setDebugInfo(null);
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      // 如果没有输入内容，打开详细表单弹窗
+      console.log("[Todo] 快速添加输入为空，打开详细表单弹窗");
+      setEditingTodo(null);
+      setIsModalOpen(true);
     }
   };
 
@@ -156,7 +159,7 @@ export default function TodosPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-center">
             <Input
-              placeholder="输入任务标题后按回车或点击添加..."
+              placeholder="快速添加：输入任务标题后按回车；或直接点击添加打开详细表单..."
               value={quickAddTitle}
               onChange={(e) => {
                 setQuickAddTitle(e.target.value);
@@ -168,7 +171,7 @@ export default function TodosPage() {
                   handleQuickAdd();
                 }
               }}
-              className="flex-1 min-w-[200px]"
+              className="flex-1 min-w-[300px]"
               autoFocus
             />
             <Select
