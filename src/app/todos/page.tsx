@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { FormEvent } from "react";
 import { Plus, Edit, Trash2, CheckCircle2, Circle, ListTodo } from "lucide-react";
 import {
   Card,
@@ -17,13 +16,7 @@ import {
   ConfirmModal,
 } from "@/components";
 import { useTodos, useTodoActions } from "@/hooks/useTodos";
-import {
-  formatDate,
-  getStatusText,
-  getPriorityText,
-  getPriorityColor,
-  getStatusColor,
-} from "@/lib/utils";
+import { formatDate, getStatusText, getPriorityText, getPriorityColor, getStatusColor } from "@/lib/utils";
 import type { Todo, TodoStatus, TodoPriority } from "@/types";
 
 const statusOptions: { value: TodoStatus; label: string }[] = [
@@ -51,6 +44,7 @@ export default function TodosPage() {
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddPriority, setQuickAddPriority] = useState<TodoPriority>("medium");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const pendingTodos = todos.filter((t) => t.status !== "done");
   const completedTodos = todos.filter((t) => t.status === "done");
@@ -72,23 +66,34 @@ export default function TodosPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleQuickAdd = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!quickAddTitle.trim()) return;
+  const handleQuickAdd = async () => {
+    console.log("[Todo] 点击添加按钮:", quickAddTitle, quickAddPriority);
+
+    if (!quickAddTitle.trim()) {
+      setActionError("请先输入任务标题");
+      return;
+    }
 
     setIsSaving(true);
     setActionError(null);
+    setDebugInfo("正在请求 Firebase 保存数据...");
+
     try {
-      await addTodo({
+      const result = await addTodo({
         title: quickAddTitle,
         priority: quickAddPriority,
         isToday: true,
         status: "todo",
       });
+      console.log("[Todo] 保存成功，返回ID:", result);
       setQuickAddTitle("");
+      setDebugInfo("保存成功！");
+      setTimeout(() => setDebugInfo(null), 2000);
     } catch (err) {
-      console.error("Failed to add todo:", err);
-      setActionError("添加任务失败：" + (err as Error).message);
+      console.error("[Todo] 保存失败:", err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setActionError("添加任务失败：" + errorMsg + "（请确保已在 Firebase 控制台创建 Firestore 数据库）");
+      setDebugInfo(null);
     } finally {
       setIsSaving(false);
     }
@@ -149,7 +154,7 @@ export default function TodosPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleQuickAdd} className="flex gap-4 flex-wrap items-center">
+          <div className="flex gap-4 flex-wrap items-center">
             <Input
               placeholder="输入任务标题后按回车或点击添加..."
               value={quickAddTitle}
@@ -157,14 +162,18 @@ export default function TodosPage() {
                 setQuickAddTitle(e.target.value);
                 if (actionError) setActionError(null);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleQuickAdd();
+                }
+              }}
               className="flex-1 min-w-[200px]"
               autoFocus
             />
             <Select
               value={quickAddPriority}
-              onChange={(e) =>
-                setQuickAddPriority(e.target.value as TodoPriority)
-              }
+              onChange={(e) => setQuickAddPriority(e.target.value as TodoPriority)}
               className="w-32"
             >
               {priorityOptions.map((opt) => (
@@ -174,19 +183,25 @@ export default function TodosPage() {
               ))}
             </Select>
             <Button
-              type="submit"
+              onClick={handleQuickAdd}
               disabled={isSaving}
             >
               <Plus className="w-4 h-4 mr-2" />
               {isSaving ? "添加中..." : "添加"}
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
       {actionError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-          {actionError}
+          <strong>❌ 错误：</strong> {actionError}
+        </div>
+      )}
+
+      {debugInfo && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-700 text-sm">
+          🔄 {debugInfo}
         </div>
       )}
 
@@ -321,11 +336,7 @@ function TodoCard({
                 <Button variant="ghost" size="icon" onClick={() => onEdit(todo)}>
                   <Edit className="w-4 h-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDelete(todo.id)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => onDelete(todo.id)}>
                   <Trash2 className="w-4 h-4 text-red-500" />
                 </Button>
               </div>
@@ -403,17 +414,13 @@ function TodoFormModal({
     }
   }, [editingTodo]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={editingTodo ? "编辑任务" : "新建任务"}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={editingTodo ? "编辑任务" : "新建任务"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="title">任务标题 *</Label>
