@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { FormEvent } from "react";
 import { Plus, Edit, Trash2, CheckCircle2, Circle, ListTodo } from "lucide-react";
 import {
   Card,
@@ -68,7 +69,7 @@ export default function TodosPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleQuickAdd = async (e: React.FormEvent) => {
+  const handleQuickAdd = async (e: FormEvent) => {
     e.preventDefault();
     if (!quickAddTitle.trim()) return;
 
@@ -376,7 +377,7 @@ function TodoFormModal({
     }
   }, [editingTodo]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };

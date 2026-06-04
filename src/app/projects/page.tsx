@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { FormEvent } from "react";
 import { Plus, Edit, Trash2, Search, FolderCheck } from "lucide-react";
 import {
   Card,
@@ -389,7 +390,7 @@ function ProjectFormModal({
     }
   }, [editingProject]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
