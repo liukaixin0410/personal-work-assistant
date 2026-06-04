@@ -398,24 +398,27 @@ function TodoFormModal({
   });
 
   useEffect(() => {
-    if (editingTodo) {
-      setFormData({
-        title: editingTodo.title,
-        description: editingTodo.description || "",
-        priority: editingTodo.priority,
-        status: editingTodo.status,
-        dueTime: editingTodo.dueTime || "",
-      });
-    } else {
-      setFormData({
-        title: "",
-        description: "",
-        priority: "medium",
-        status: "todo",
-        dueTime: "",
-      });
+    // 每次弹窗打开或编辑对象变化时重置表单
+    if (isOpen) {
+      if (editingTodo) {
+        setFormData({
+          title: editingTodo.title,
+          description: editingTodo.description || "",
+          priority: editingTodo.priority,
+          status: editingTodo.status,
+          dueTime: editingTodo.dueTime || "",
+        });
+      } else {
+        setFormData({
+          title: "",
+          description: "",
+          priority: "medium",
+          status: "todo",
+          dueTime: "",
+        });
+      }
     }
-  }, [editingTodo]);
+  }, [editingTodo, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

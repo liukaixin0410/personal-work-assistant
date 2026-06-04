@@ -361,34 +361,36 @@ function ProjectFormModal({
   });
 
   useEffect(() => {
-    if (editingProject) {
-      setFormData({
-        name: editingProject.name,
-        description: editingProject.description || "",
-        status: editingProject.status,
-        priority: editingProject.priority,
-        startDate: editingProject.startDate || "",
-        dueDate: editingProject.dueDate || "",
-        progress: editingProject.progress || "",
-        nextAction: editingProject.nextAction || "",
-        risk: editingProject.risk || "",
-        link: editingProject.link || "",
-      });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        status: "not_started",
-        priority: "medium",
-        startDate: "",
-        dueDate: "",
-        progress: "",
-        nextAction: "",
-        risk: "",
-        link: "",
-      });
+    if (isOpen) {
+      if (editingProject) {
+        setFormData({
+          name: editingProject.name,
+          description: editingProject.description || "",
+          status: editingProject.status,
+          priority: editingProject.priority,
+          startDate: editingProject.startDate || "",
+          dueDate: editingProject.dueDate || "",
+          progress: editingProject.progress || "",
+          nextAction: editingProject.nextAction || "",
+          risk: editingProject.risk || "",
+          link: editingProject.link || "",
+        });
+      } else {
+        setFormData({
+          name: "",
+          description: "",
+          status: "not_started",
+          priority: "medium",
+          startDate: "",
+          dueDate: "",
+          progress: "",
+          nextAction: "",
+          risk: "",
+          link: "",
+        });
+      }
     }
-  }, [editingProject]);
+  }, [editingProject, isOpen]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
