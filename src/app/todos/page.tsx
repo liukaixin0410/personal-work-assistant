@@ -149,12 +149,16 @@ export default function TodosPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleQuickAdd} className="flex gap-4 flex-wrap">
+          <form onSubmit={handleQuickAdd} className="flex gap-4 flex-wrap items-center">
             <Input
-              placeholder="快速添加任务..."
+              placeholder="输入任务标题后按回车或点击添加..."
               value={quickAddTitle}
-              onChange={(e) => setQuickAddTitle(e.target.value)}
+              onChange={(e) => {
+                setQuickAddTitle(e.target.value);
+                if (actionError) setActionError(null);
+              }}
               className="flex-1 min-w-[200px]"
+              autoFocus
             />
             <Select
               value={quickAddPriority}
@@ -169,7 +173,10 @@ export default function TodosPage() {
                 </option>
               ))}
             </Select>
-            <Button type="submit" disabled={isSaving || !quickAddTitle.trim()}>
+            <Button
+              type="submit"
+              disabled={isSaving}
+            >
               <Plus className="w-4 h-4 mr-2" />
               {isSaving ? "添加中..." : "添加"}
             </Button>
