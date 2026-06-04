@@ -6,24 +6,30 @@ import { useState } from "react";
 import { StatCard, Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingState, Button } from "@/components";
 import { useProjects } from "@/hooks/useProjects";
 import { useTodos } from "@/hooks/useTodos";
+import { useAeolus } from "@/hooks/useAeolus";
 import { formatDate, getStatusText, getPriorityText, getPriorityColor, getStatusColor } from "@/lib/utils";
 import type { Project, Todo } from "@/types";
+import type { AeolusDashboardType } from "@/lib/aeolus";
 
-const mockDashboardMetrics = [
-  { id: "1", name: "本周需求数", value: 25, delta: "+12%", updatedAt: "2026-06-03 10:00", detailUrl: "#" },
-  { id: "2", name: "完成任务数", value: 18, delta: "+8%", updatedAt: "2026-06-03 10:00", detailUrl: "#" },
-  { id: "3", name: "进行中项目", value: 5, delta: "0", updatedAt: "2026-06-03 10:00", detailUrl: "#" },
-  { id: "4", name: "待处理风险", value: 2, delta: "-1", updatedAt: "2026-06-03 10:00", detailUrl: "#" },
+type DashboardTab = AeolusDashboardType;
+
+const TAB_OPTIONS: { value: DashboardTab; label: string }[] = [
+  { value: "today", label: "近一日" },
+  { value: "week", label: "近一周" },
+  { value: "realtime", label: "实时" },
 ];
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<DashboardTab>("today");
   const [refreshing, setRefreshing] = useState(false);
   const { projects, loading: projectsLoading, error: projectsError } = useProjects();
   const { todos, loading: todosLoading, error: todosError } = useTodos();
+  const { metrics, loading: aeolusLoading, error: aeolusError, refresh: refreshAeolus, config } = useAeolus(activeTab);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refreshAeolus();
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   const recentProjects = projects.slice(0, 5);
@@ -41,29 +47,82 @@ export default function Home() {
         <Button
           variant="outline"
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={refreshing || aeolusLoading}
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
           刷新
         </Button>
       </div>
 
+      {/* 风神数据看板 */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">数据看板</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {mockDashboardMetrics.map((metric) => (
-            <StatCard
-              key={metric.id}
-              title={metric.name}
-              value={metric.value}
-              delta={metric.delta}
-              updatedAt={metric.updatedAt}
-              detailUrl={metric.detailUrl}
-            />
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+          <h2 className="text-lg font-semibold">数据看板 - {config.name}</h2>
+          <div className="flex gap-2">
+            {TAB_OPTIONS.map((tab) => (
+              <Button
+                key={tab.value}
+                variant={activeTab === tab.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab(tab.value)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
         </div>
+
+        {aeolusLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="pt-6">
+                  <div className="h-20 flex items-center justify-center">
+                    <div className="text-gray-400 text-sm">加载中...</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : aeolusError ? (
+          <EmptyState
+            title="数据加载失败"
+            description={aeolusError}
+            action={
+              <Button onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                重试
+              </Button>
+            }
+          />
+        ) : metrics.length === 0 ? (
+          <EmptyState
+            title="暂无数据"
+            description="请稍后再试"
+            action={
+              <Button onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {metrics.map((metric) => (
+              <StatCard
+                key={metric.id}
+                title={metric.name}
+                value={metric.value}
+                delta={metric.delta}
+                updatedAt={metric.updatedAt}
+                detailUrl={metric.detailUrl}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* 最近项目 */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">最近项目</h2>
@@ -104,6 +163,7 @@ export default function Home() {
         )}
       </div>
 
+      {/* 今日任务 */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">今日任务</h2>
