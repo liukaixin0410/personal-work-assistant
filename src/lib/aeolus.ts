@@ -21,6 +21,10 @@ export interface AeolusDashboardConfig {
 }
 
 // 三个风神看板配置
+// 从用户提供的链接中提取的 ID 信息：
+// 近一日: https://data.bytedance.net/aeolus/pages/dashboard/1510451?appId=1128&sheetId=2112164&snapshotId=1188208
+// 近一周: https://data.bytedance.net/aeolus/pages/dashboard/1627430?appId=1128&sheetId=2320850
+// 实时:   https://data.bytedance.net/aeolus/pages/dashboard/1557333?appId=1002633&isDefault=1&sheetId=2196108&snapshotId=1188209
 export const DASHBOARD_CONFIGS: Record<AeolusDashboardType, AeolusDashboardConfig> = {
   today: {
     type: "today",
@@ -50,39 +54,49 @@ export const DASHBOARD_CONFIGS: Record<AeolusDashboardType, AeolusDashboardConfi
   },
 };
 
-// Mock 数据 - 在没有真实 API 之前使用
-const mockData: Record<AeolusDashboardType, AeolusMetric[]> = {
-  today: [
-    { id: "1", name: "今日需求数", value: 8, delta: "+3", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.today.url },
-    { id: "2", name: "今日完成任务", value: 12, delta: "+5", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.today.url },
-    { id: "3", name: "今日进行中", value: 6, delta: "-1", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.today.url },
-    { id: "4", name: "今日风险项", value: 2, delta: "0", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.today.url },
-  ],
-  week: [
-    { id: "1", name: "本周需求数", value: 25, delta: "+12%", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.week.url },
-    { id: "2", name: "本周完成任务", value: 42, delta: "+18%", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.week.url },
-    { id: "3", name: "本周进行中", value: 15, delta: "+3", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.week.url },
-    { id: "4", name: "本周风险项", value: 5, delta: "-2", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.week.url },
-  ],
-  realtime: [
-    { id: "1", name: "实时活跃用户", value: "12,453", delta: "+2.3%", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.realtime.url },
-    { id: "2", name: "实时点击量", value: "89,234", delta: "+5.1%", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.realtime.url },
-    { id: "3", name: "实时转化率", value: "3.45%", delta: "+0.2%", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.realtime.url },
-    { id: "4", name: "实时异常数", value: 2, delta: "-1", updatedAt: new Date().toISOString(), detailUrl: DASHBOARD_CONFIGS.realtime.url },
-  ],
-};
+// API 响应类型
+interface ApiResponse {
+  success: boolean;
+  data?: AeolusMetric[];
+  message?: string;
+  hint?: string;
+}
 
-// 获取风神数据
+// 获取风神数据 - 通过服务端 API 路由调用
 export async function fetchAeolusData(type: AeolusDashboardType): Promise<AeolusMetric[]> {
-  // TODO: 当用户提供真实的 API 接口时，替换这里
-  // 真实实现应该调用 Next.js API route，然后 API route 调用风神 API
-  // 例如：
-  // const res = await fetch(`/api/aeolus?type=${type}`);
-  // if (!res.ok) throw new Error("获取风神数据失败");
-  // const data = await res.json();
-  // return data.metrics;
+  try {
+    const res = await fetch(`/api/aeolus?type=${type}`, {
+      method: "GET",
+      // 不缓存，每次都获取最新数据
+      cache: "no-store",
+    });
 
-  // 目前返回模拟数据
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockData[type];
+    if (!res.ok) {
+      let errorMsg = `获取风神数据失败 (${res.status})`;
+      try {
+        const errorData = await res.json();
+        if (errorData.message) {
+          errorMsg += `: ${errorData.message}`;
+        }
+        if (errorData.hint) {
+          errorMsg += `\n提示: ${errorData.hint}`;
+        }
+      } catch {
+        // 如果无法解析 JSON，使用状态文本
+        errorMsg += `: ${res.statusText}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data: ApiResponse = await res.json();
+
+    if (!data.success || !data.data) {
+      throw new Error(data.message || "风神 API 返回数据为空");
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error("fetchAeolusData 失败:", error);
+    throw error;
+  }
 }
