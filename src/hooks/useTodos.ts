@@ -75,8 +75,7 @@ export function useTodos() {
 
     const q = query(
       collection(db, "todos"),
-      where("isToday", "==", true),
-      orderBy("createdAt", "desc")
+      where("isToday", "==", true)
     );
 
     const unsubscribe = onSnapshot(

@@ -45,6 +45,12 @@ const mockProjects: Project[] = [
   },
 ];
 
+const projectPriorityOrder: Record<string, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
 export function useProjects(filters?: {
   status?: string;
   priority?: string;
@@ -68,27 +74,7 @@ export function useProjects(filters?: {
       return;
     }
 
-    const constraints: QueryConstraint[] = [];
-
-    if (filters?.status && filters.status !== "all") {
-      constraints.push(where("status", "==", filters.status));
-    }
-    if (filters?.priority && filters.priority !== "all") {
-      constraints.push(where("priority", "==", filters.priority));
-    }
-
-    let sortField = "updatedAt";
-    let sortDirection: "asc" | "desc" = "desc";
-    if (filters?.sortBy === "priority") {
-      sortField = "priority";
-      sortDirection = "asc";
-    } else if (filters?.sortBy === "dueDate") {
-      sortField = "dueDate";
-      sortDirection = "asc";
-    }
-    constraints.push(orderBy(sortField, sortDirection));
-
-    const q = query(collection(db, "projects"), ...constraints);
+    const q = query(collection(db, "projects"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -98,6 +84,13 @@ export function useProjects(filters?: {
           ...doc.data(),
         })) as Project[];
 
+        // 客户端筛选（避免需要 Firebase 复合索引）
+        if (filters?.status && filters.status !== "all") {
+          projectList = projectList.filter((p) => p.status === filters.status);
+        }
+        if (filters?.priority && filters.priority !== "all") {
+          projectList = projectList.filter((p) => p.priority === filters.priority);
+        }
         if (filters?.keyword) {
           const keyword = filters.keyword.toLowerCase();
           projectList = projectList.filter((project) =>
@@ -105,12 +98,26 @@ export function useProjects(filters?: {
           );
         }
 
+        // 客户端排序
+        const sortBy = filters?.sortBy || "updatedAt";
+        if (sortBy === "priority") {
+          projectList.sort((a, b) => projectPriorityOrder[a.priority] - projectPriorityOrder[b.priority]);
+        } else if (sortBy === "dueDate") {
+          projectList.sort((a, b) => {
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          });
+        } else {
+          projectList.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        }
+
         setProjects(projectList);
         setLoading(false);
       },
       (err) => {
         console.error("Error fetching projects:", err);
-        setError("加载项目失败");
+        setError("加载项目失败：" + (err as Error).message);
         setLoading(false);
       }
     );
