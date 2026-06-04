@@ -50,17 +50,20 @@ export default function TodosPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddPriority, setQuickAddPriority] = useState<TodoPriority>("medium");
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const pendingTodos = todos.filter((t) => t.status !== "done");
   const completedTodos = todos.filter((t) => t.status === "done");
 
   const handleAddTodo = () => {
     setEditingTodo(null);
+    setActionError(null);
     setIsModalOpen(true);
   };
 
   const handleEditTodo = (todo: Todo) => {
     setEditingTodo(todo);
+    setActionError(null);
     setIsModalOpen(true);
   };
 
@@ -74,6 +77,7 @@ export default function TodosPage() {
     if (!quickAddTitle.trim()) return;
 
     setIsSaving(true);
+    setActionError(null);
     try {
       await addTodo({
         title: quickAddTitle,
@@ -84,6 +88,7 @@ export default function TodosPage() {
       setQuickAddTitle("");
     } catch (err) {
       console.error("Failed to add todo:", err);
+      setActionError("添加任务失败：" + (err as Error).message);
     } finally {
       setIsSaving(false);
     }
@@ -91,6 +96,7 @@ export default function TodosPage() {
 
   const handleSaveTodo = async (data: Omit<Todo, "id" | "createdAt" | "updatedAt" | "isToday">) => {
     setIsSaving(true);
+    setActionError(null);
     try {
       if (editingTodo) {
         await updateTodo(editingTodo.id, data);
@@ -101,14 +107,20 @@ export default function TodosPage() {
       setEditingTodo(null);
     } catch (err) {
       console.error("Failed to save todo:", err);
+      setActionError("保存任务失败：" + (err as Error).message);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleToggleComplete = async (todo: Todo) => {
-    const newStatus = todo.status === "done" ? "todo" : "done";
-    await updateTodo(todo.id, { status: newStatus });
+    try {
+      const newStatus = todo.status === "done" ? "todo" : "done";
+      await updateTodo(todo.id, { status: newStatus });
+    } catch (err) {
+      console.error("Failed to toggle todo:", err);
+      setActionError("更新任务状态失败：" + (err as Error).message);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -120,6 +132,7 @@ export default function TodosPage() {
       setTodoToDelete(null);
     } catch (err) {
       console.error("Failed to delete todo:", err);
+      setActionError("删除任务失败：" + (err as Error).message);
     } finally {
       setIsDeleting(false);
     }
@@ -158,11 +171,17 @@ export default function TodosPage() {
             </Select>
             <Button type="submit" disabled={isSaving || !quickAddTitle.trim()}>
               <Plus className="w-4 h-4 mr-2" />
-              添加
+              {isSaving ? "添加中..." : "添加"}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+          {actionError}
+        </div>
+      )}
 
       {loading ? (
         <LoadingState message="加载任务中..." />
